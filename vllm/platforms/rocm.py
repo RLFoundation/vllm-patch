@@ -63,7 +63,8 @@ _ROCM_PARTIALLY_SUPPORTED_MODELS: Dict[str, str] = {
 if "HIP_VISIBLE_DEVICES" in os.environ:
     val = os.environ["HIP_VISIBLE_DEVICES"]
     if cuda_val := os.environ.get("CUDA_VISIBLE_DEVICES", None):
-        assert val == cuda_val
+        val = cuda_val
+        os.environ["HIP_VISIBLE_DEVICES"] = val 
     else:
         os.environ["CUDA_VISIBLE_DEVICES"] = val
 
