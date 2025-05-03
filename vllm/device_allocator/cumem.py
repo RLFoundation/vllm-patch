@@ -8,6 +8,7 @@
 # not sure why, they are created from a different context.
 # the only successful approach is to call cuda driver API in C.
 import dataclasses
+from datetime import date
 import gc
 import os
 from contextlib import contextmanager
@@ -251,13 +252,12 @@ class CuMemAllocator:
         old_tag = self.current_tag
         self.current_tag = tag
         with use_memory_pool_with_allocator(self.python_malloc_callback,
-                                            self.python_free_callback) as data:
+                                            self.python_free_callback):
             # start to hit another PyTorch bug in PyTorch 2.6,
             # possibly because of gc-related issue w.r.t. the allocator and
             # the memory pool.
             # to avoid the issue, we keep a reference of the data.
             # see https://github.com/pytorch/pytorch/issues/146431 .
-            self.allocator_and_pools[tag] = data
             yield
             # PyTorch's bug, calling torch.cuda.empty_cache() will error
             # when using pluggable allocator, see
