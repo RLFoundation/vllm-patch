@@ -3,12 +3,14 @@
 // need to be unsigned long long
 #include <iostream>
 
+// #define ENABLE_DEBUG_CUMEM
+
 #include "cumem_allocator_compat.h"
 
 #ifndef USE_ROCM
 static const char* PYARGS_PARSE = "KKKK";
 #else
-  #define MEMCREATE_CHUNK_SIZE (512 * 1024 * 1024)
+  #define MEMCREATE_CHUNK_SIZE (4 * 1024 * 1024)
   #define MIN(a, b) (a < b ? a : b)
 
 static const char* PYARGS_PARSE = "KKKO";
@@ -86,17 +88,29 @@ void create_and_map(unsigned long long device, ssize_t size, CUdeviceptr d_mem,
   for (auto i = 0; i < num_chunks; ++i) {
     CUDA_CHECK(cuMemCreate(p_memHandle[i], chunk_sizes[i], &prop, 0));
     if (error_code != 0) {
+#ifdef ENABLE_DEBUG_CUMEM
+      std::cout << "cuMemCreate failed: " << i << std::endl;
+#endif
       return;
     }
+#ifdef ENABLE_DEBUG_CUMEM
+    std::cout << "p_memHandle[" << i << "] = " << p_memHandle[i] << std::endl;
+#endif
   }
   unsigned long long allocated_size = 0;
   for (auto i = 0; i < num_chunks; ++i) {
     void* map_addr = (void*)((uintptr_t)d_mem + allocated_size);
     CUDA_CHECK(cuMemMap(map_addr, chunk_sizes[i], 0, *(p_memHandle[i]), 0));
     if (error_code != 0) {
+#ifdef ENABLE_DEBUG_CUMEM
+      std::cout << "cuMemMap failed: " << i << std::endl;
+#endif
       return;
     }
     allocated_size += chunk_sizes[i];
+#ifdef ENABLE_DEBUG_CUMEM
+    std::cout << "allocated_size = " << allocated_size << std::endl;
+#endif
   }
 #endif
 
@@ -109,8 +123,9 @@ void create_and_map(unsigned long long device, ssize_t size, CUdeviceptr d_mem,
   if (error_code != 0) {
     return;
   }
-  // std::cout << "create_and_map: device=" << device << ", size=" << size << ",
-  // d_mem=" << d_mem << ", p_memHandle=" << p_memHandle << std::endl;
+#ifdef ENABLE_DEBUG_CUMEM
+  std::cout << "create_and_map: device=" << device << ", size=" << size << ", d_mem=" << d_mem << ", p_memHandle=" << p_memHandle << std::endl;
+#endif
 }
 
 void unmap_and_release(unsigned long long device, ssize_t size,
@@ -121,8 +136,9 @@ void unmap_and_release(unsigned long long device, ssize_t size,
                        CUmemGenericAllocationHandle** p_memHandle,
                        unsigned long long* chunk_sizes, size_t num_chunks) {
 #endif
-  // std::cout << "unmap_and_release: device=" << device << ", size=" << size <<
-  // ", d_mem=" << d_mem << ", p_memHandle=" << p_memHandle << std::endl;
+#ifdef ENABLE_DEBUG_CUMEM
+  std::cout << "unmap_and_release: device=" << device << ", size=" << size << ", d_mem=" << d_mem << ", p_memHandle=" << p_memHandle << std::endl;
+#endif
   ensure_context(device);
 #ifndef USE_ROCM
   CUDA_CHECK(cuMemUnmap(d_mem, size));
@@ -139,6 +155,9 @@ void unmap_and_release(unsigned long long device, ssize_t size,
     void* map_addr = (void*)((uintptr_t)d_mem + allocated_size);
     CUDA_CHECK(cuMemUnmap(map_addr, chunk_sizes[i]));
     if (error_code != 0) {
+#ifdef ENABLE_DEBUG_CUMEM
+      std::cout << "cuMemUnmap failed" << std::endl;
+#endif
       return;
     }
     allocated_size += chunk_sizes[i];
@@ -146,6 +165,9 @@ void unmap_and_release(unsigned long long device, ssize_t size,
   for (auto i = 0; i < num_chunks; ++i) {
     CUDA_CHECK(cuMemRelease(*(p_memHandle[i])));
     if (error_code != 0) {
+#ifdef ENABLE_DEBUG_CUMEM
+      std::cout << "cuMemRelease failed" << std::endl;
+#endif
       return;
     }
   }
@@ -266,6 +288,7 @@ void* my_malloc(ssize_t size, int device, CUstream stream) {
         sizeof(CUmemGenericAllocationHandle));
     chunk_sizes[i] =
         MIN(alignedSize - i * aligned_chunk_size, aligned_chunk_size);
+    std::cout << "chunk_sizes[" << i << "] = " << chunk_sizes[i] << std::endl;
   }
 #endif
 
