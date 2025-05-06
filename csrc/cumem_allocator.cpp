@@ -288,7 +288,9 @@ void* my_malloc(ssize_t size, int device, CUstream stream) {
         sizeof(CUmemGenericAllocationHandle));
     chunk_sizes[i] =
         MIN(alignedSize - i * aligned_chunk_size, aligned_chunk_size);
+#ifdef ENABLE_DEBUG_CUMEM
     std::cout << "chunk_sizes[" << i << "] = " << chunk_sizes[i] << std::endl;
+#endif
   }
 #endif
 
