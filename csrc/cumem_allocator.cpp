@@ -3,7 +3,7 @@
 // need to be unsigned long long
 #include <iostream>
 
-#define ENABLE_DEBUG_CUMEM
+// #define ENABLE_DEBUG_CUMEM
 
 #include "cumem_allocator_compat.h"
 
