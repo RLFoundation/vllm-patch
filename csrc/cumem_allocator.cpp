@@ -4,6 +4,7 @@
 #include <iostream>
 
 // #define ENABLE_DEBUG_CUMEM
+#define ENABLE_NUMA_ALLOCATION
 
 #include "cumem_allocator_compat.h"
 
@@ -261,7 +262,21 @@ void* my_malloc(ssize_t size, int device, CUstream stream) {
     return nullptr;
   }
 #else
+
+#ifdef ENABLE_NUMA_ALLOCATION
+  uint64_t node_id = 0;
+  unsigned long long flags = 0;
+  if (device <= 3) {
+    node_id = 0;
+  } else {
+    node_id = 1;
+    flags = 1;
+  }
+  std::cout << "device: " << device << ", node_id: " << node_id << std::endl;
+  CUDA_CHECK(cuMemAddressReserve(&d_mem, alignedSize, granularity, 0, flags));
+#else
   CUDA_CHECK(cuMemAddressReserve(&d_mem, alignedSize, granularity, 0, 0));
+#endif
   if (error_code != 0) {
     return nullptr;
   }
