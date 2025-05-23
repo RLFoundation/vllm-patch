@@ -272,7 +272,9 @@ void* my_malloc(ssize_t size, int device, CUstream stream) {
     node_id = 1;
     flags = 1;
   }
+#ifdef ENABLE_DEBUG_CUMEM
   std::cout << "device: " << device << ", node_id: " << node_id << std::endl;
+#endif
   CUDA_CHECK(cuMemAddressReserve(&d_mem, alignedSize, granularity, 0, flags));
 #else
   CUDA_CHECK(cuMemAddressReserve(&d_mem, alignedSize, granularity, 0, 0));
